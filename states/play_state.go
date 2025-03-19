@@ -5,11 +5,13 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"image/color"
-	"math"
+	"math/rand"
 	"superpupergame/enemy"
+	"superpupergame/game" // Импортируем пакет с монеткой
 	"superpupergame/player"
 	"superpupergame/ui"
 	"time"
+	"math"
 )
 
 // PlayState реализует игровое состояние
@@ -22,6 +24,15 @@ type PlayState struct {
 	
 	// enemies - список врагов
 	enemies []*enemy.Enemy
+	
+	// coins - список монеток
+	coins []*game.Coin
+	
+	// coinCount - количество активных монеток
+	coinCount int
+	
+	// maxCoins - максимальное количество монеток на экране
+	maxCoins int
 	
 	// enemyCount - количество врагов в текущей волне
 	enemyCount int
@@ -41,6 +52,18 @@ func NewPlayState(stateMachine *StateMachine) *PlayState {
 		enemyCount:   1,
 		score:        0,
 		hud:          ui.NewHUD(),
+		coins:        make([]*game.Coin, 0),
+		coinCount:    0,
+		maxCoins:     5, // Максимальное количество монеток на экране
+	}
+}
+
+// SpawnCoin создает новую монетку
+func (p *PlayState) SpawnCoin() {
+	// Создаем новую монетку если не превышен лимит
+	if p.coinCount < p.maxCoins {
+		p.coins = append(p.coins, game.NewCoin(1280, 960))
+		p.coinCount++
 	}
 }
 
@@ -51,6 +74,15 @@ func (p *PlayState) Enter() {
 	
 	// Создаем первого врага
 	p.enemies = []*enemy.Enemy{enemy.NewRandomEdgeEnemy()}
+	
+	// Очищаем список монеток
+	p.coins = make([]*game.Coin, 0)
+	p.coinCount = 0
+	
+	// Создаем начальные монетки
+	for i := 0; i < 3; i++ {
+		p.SpawnCoin()
+	}
 	
 	// Сбрасываем счет
 	p.score = 0
@@ -63,6 +95,11 @@ func (p *PlayState) Enter() {
 func (p *PlayState) Update() error {
 	// Обновляем игрока
 	p.player.Update()
+	
+	// Обновляем все монетки (анимация)
+	for _, coin := range p.coins {
+        coin.Update()
+    }
 
 	// Обрабатываем взаимодействие с врагами
 	for _, e := range p.enemies {
@@ -97,6 +134,26 @@ func (p *PlayState) Update() error {
 		}
 	}
 
+	// Проверяем сбор монеток
+	for i := len(p.coins) - 1; i >= 0; i-- {
+		coin := p.coins[i]
+		// Проверяем коллизию с игроком
+		if coin.Collides(p.player.X, p.player.Y, 20, 20) { // Предполагаемый размер игрока
+			// Увеличиваем счет
+			p.score += 50
+			
+			// Удаляем монетку
+			p.coins = append(p.coins[:i], p.coins[i+1:]...)
+			p.coinCount--
+			
+			// Создаем новую монетку с небольшой задержкой
+			go func() {
+				time.Sleep(2 * time.Second)
+				p.SpawnCoin()
+			}()
+		}
+	}
+
 	// Подсчитываем живых врагов и проверяем атаки
 	liveEnemies := 0
 	for _, e := range p.enemies {
@@ -128,6 +185,11 @@ func (p *PlayState) Update() error {
 					
 					// Увеличиваем счет
 					p.score += 100
+					
+					// С небольшим шансом создаем дополнительную монетку
+					if p.coinCount < p.maxCoins && rand.Float64() < 0.3 {
+						p.SpawnCoin()
+					}
 				}
 			}
 		}
@@ -149,6 +211,9 @@ func (p *PlayState) Update() error {
 		// Восстанавливаем немного здоровья при уничтожении всех врагов
 		p.player.Health = math.Min(p.player.Health+10, 100)
 		
+		// Создаем бонусную монетку после каждой волны
+		p.SpawnCoin()
+		
 		// Небольшая пауза между волнами
 		time.Sleep(500 * time.Millisecond)
 	}
@@ -163,6 +228,11 @@ func (p *PlayState) Draw(screen *ebiten.Image) {
 	
 	// Отрисовываем игрока
 	p.player.Draw(screen)
+	
+	// Отрисовываем монетки
+	for _, coin := range p.coins {
+		coin.Draw(screen)
+	}
 	
 	// Отрисовываем врагов
 	for _, e := range p.enemies {
