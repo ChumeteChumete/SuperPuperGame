@@ -65,10 +65,10 @@ type Player struct {
 // NewPlayer создаёт и инициализирует нового игрока с указанными координатами
 func NewPlayer(x, y float64) *Player {
 	// Загружаем изображение меча
-	sword := loadImage("sword.png")
+	sword := loadImage("assets/sword.png")
 	
 	// Загружаем спрайт-лист игрока
-	spriteSheet := loadImage("player_sprites.png")
+	spriteSheet := loadImage("assets/player_sprites.png")
 	
 	// Создаём и возвращаем новый экземпляр игрока
 	return &Player{
