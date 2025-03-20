@@ -1,13 +1,16 @@
 package player
 
 import (
+	"image"
+	"fmt"
 	"log"
 	"os"
-	"image"
-	_ "image/png"
 	"time"
+	_ "image/png"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"superpupergame/debug" // Импортируем пакет debug
 	"superpupergame/utils"
 )
 
@@ -60,10 +63,13 @@ type Player struct {
 	// Ресурсы
 	SpriteSheet    *ebiten.Image // Спрайт-лист игрока
 	SwordImage     *ebiten.Image // Изображение меча
+	
+	// Система отладки
+	DebugSystem    *debug.Debug // Ссылка на систему отладки
 }
 
 // NewPlayer создаёт и инициализирует нового игрока с указанными координатами
-func NewPlayer(x, y float64) *Player {
+func NewPlayer(x, y float64, debugSystem *debug.Debug) *Player {
 	// Загружаем изображение меча
 	sword := loadImage("assets/sword.png")
 	
@@ -89,6 +95,7 @@ func NewPlayer(x, y float64) *Player {
 		MaxHealth:      100,                // Максимальное здоровье
 		Dying:          false,              // Флаг смерти
 		DeathTimer:     0,                  // Таймер смерти
+		DebugSystem:    debugSystem,        // Система отладки
 	}
 }
 
@@ -116,18 +123,26 @@ func (p *Player) Update() {
 
 // Draw отрисовывает игрока на экране
 func (p *Player) Draw(screen *ebiten.Image) {
-	// Перенесено в animation.go
-	p.DrawSprite(screen)
-	
-	// Отрисовка полосок заряда рывка
-	if !p.Dying {
-		p.DrawDashCharges(screen)
-		
-		// Отрисовка меча при атаке
-		if p.Attacking {
-			p.DrawSword(screen)
-		}
-	}
+    // Отрисовка спрайта игрока
+    p.DrawSprite(screen)
+
+    // Отрисовка полосок заряда рывка
+    if !p.Dying {
+        p.DrawDashCharges(screen)
+        if p.Attacking {
+            p.DrawSword(screen)
+        }
+    }
+
+    // Отрисовка отладочной информации (без хитбокса)
+    if p.DebugSystem.IsEnabled() && p.DebugSystem.ShowPositions {
+        debugInfo := fmt.Sprintf("X: %.1f, Y: %.1f", p.X, p.Y)
+        ebitenutil.DebugPrintAt(screen, debugInfo, int(p.X), int(p.Y)-15)
+        healthInfo := fmt.Sprintf("HP: %.1f/%.1f", p.Health, p.MaxHealth)
+        ebitenutil.DebugPrintAt(screen, healthInfo, int(p.X), int(p.Y)-30)
+        dashInfo := fmt.Sprintf("Dash: %d/%d", p.DashCharges, p.MaxDashes)
+        ebitenutil.DebugPrintAt(screen, dashInfo, int(p.X), int(p.Y)-45)
+    }
 }
 
 // loadImage загружает изображение из файла и возвращает его как ebiten.Image
@@ -144,4 +159,13 @@ func loadImage(path string) *ebiten.Image {
 	}
 	
 	return ebiten.NewImageFromImage(img)
+}
+
+// GetHitbox возвращает координаты и размеры хитбокса игрока
+func (p *Player) GetHitbox() (x, y, width, height float64) {
+    hitboxWidth := 20.0 	// Ширина хитбокса
+    hitboxHeight := 30.0 	// Высота хитбокса
+    x = p.X + 6        		// Смещение хитбокса по X
+    y = p.Y + 2        		// Смещение хитбокса по Y
+    return x, y, hitboxWidth, hitboxHeight
 }

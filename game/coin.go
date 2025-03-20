@@ -87,3 +87,15 @@ func (c *Coin) Collides(x, y float64, width, height int) bool {
            y < c.y+float64(c.frameHeight) &&
            y+float64(height) > c.y
 }
+
+func (c *Coin) GetX() float64 {
+    return c.x
+}
+
+func (c *Coin) GetY() float64 {
+    return c.y
+}
+
+func (c *Coin) GetHitbox() (x, y, width, height float64) {
+    return c.GetX(), c.GetY(), 16.0, 16.0 // Предполагаемые размеры монетки
+}

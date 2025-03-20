@@ -77,3 +77,14 @@ func (sm *StateMachine) Draw(screen *ebiten.Image) {
 		sm.currentState.Draw(screen)
 	}
 }
+
+// GetCurrentStateName возвращает имя текущего состояния
+func (sm *StateMachine) GetCurrentStateName() string {
+    // Проходим по карте состояний
+    for name, state := range sm.states {
+        if state == sm.currentState {
+            return name
+        }
+    }
+    return "Неизвестно"
+}

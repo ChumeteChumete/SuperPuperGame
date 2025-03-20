@@ -65,3 +65,7 @@ func (e *Enemy) Draw(screen *ebiten.Image) {
 		ebitenutil.DrawRect(screen, e.X, e.Y, 20, 20, color.RGBA{255, 0, 0, 255})
 	}
 }
+
+func (e *Enemy) GetHitbox() (x, y, width, height float64) {
+    return e.X, e.Y, 20.0, 20.0 // Размеры врага
+}

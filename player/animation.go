@@ -68,8 +68,8 @@ func (p *Player) DrawSprite(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
 	
 	// Смещение для центрирования спрайта
-	offsetX := -5.0  // Корректировка по X (влево)
-	offsetY := -8.0  // Корректировка по Y (вверх)
+	offsetX := -scaledWidth/2 + 16.0  // Корректировка по X (влево)
+	offsetY := -scaledHeight/2 + 15.0  // Корректировка по Y (вверх)
 	
 	// Центрируем спрайт
 	op.GeoM.Translate(-float64(FrameWidth)/2, -float64(FrameHeight)/2)

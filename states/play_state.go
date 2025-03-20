@@ -12,6 +12,7 @@ import (
 	"superpupergame/ui"
 	"time"
 	"math"
+	"fmt"
 )
 
 // PlayState реализует игровое состояние
@@ -45,10 +46,11 @@ type PlayState struct {
 }
 
 // NewPlayState создает новое игровое состояние
-func NewPlayState(stateMachine *StateMachine) *PlayState {
+func NewPlayState(stateMachine *StateMachine, player *player.Player) *PlayState {
 	// Создаем игровое состояние
 	return &PlayState{
 		stateMachine: stateMachine,
+		player:       player,
 		enemyCount:   1,
 		score:        0,
 		hud:          ui.NewHUD(),
@@ -69,8 +71,16 @@ func (p *PlayState) SpawnCoin() {
 
 // Enter вызывается при входе в игровое состояние
 func (p *PlayState) Enter() {
-	// Создаем игрока в центре экрана
-	p.player = player.NewPlayer(640, 480)
+	
+	// Сбрасываем параметры существующего игрока
+    p.player.X = 640
+    p.player.Y = 480
+    p.player.Health = 100
+    p.player.Dying = false
+    p.player.Attacking = false
+    p.player.Dashing = false
+    p.player.DashCharges = p.player.MaxDashes
+    p.player.DeathTimer = 0
 	
 	// Создаем первого врага
 	p.enemies = []*enemy.Enemy{enemy.NewRandomEdgeEnemy()}
@@ -99,6 +109,15 @@ func (p *PlayState) Update() error {
 	// Обновляем все монетки (анимация)
 	for _, coin := range p.coins {
         coin.Update()
+    }
+
+	// Добавляем отладочную информацию о количестве объектов
+	if p.player.DebugSystem != nil && p.player.DebugSystem.IsEnabled() {
+        p.player.DebugSystem.ClearMessages()
+        p.player.DebugSystem.AddMessage(fmt.Sprintf("Враги: %d", len(p.enemies)))
+        p.player.DebugSystem.AddMessage(fmt.Sprintf("Монеты: %d/%d", p.coinCount, p.maxCoins))
+        p.player.DebugSystem.AddMessage(fmt.Sprintf("Счёт: %d", p.score))
+        p.player.DebugSystem.AddMessage(fmt.Sprintf("Волна: %d", p.enemyCount))
     }
 
 	// Обрабатываем взаимодействие с врагами
@@ -221,26 +240,47 @@ func (p *PlayState) Update() error {
 	return nil
 }
 
-// Draw отрисовывает игровое состояние
 func (p *PlayState) Draw(screen *ebiten.Image) {
-	// Заполняем фон
-	ebitenutil.DrawRect(screen, 0, 0, 1280, 960, color.RGBA{50, 50, 50, 255})
-	
-	// Отрисовываем игрока
-	p.player.Draw(screen)
-	
-	// Отрисовываем монетки
-	for _, coin := range p.coins {
-		coin.Draw(screen)
-	}
-	
-	// Отрисовываем врагов
-	for _, e := range p.enemies {
-		e.Draw(screen)
-	}
-	
-	// Отрисовываем HUD (здоровье и счет)
-	p.hud.Draw(screen, p.player.Health, p.score)
+    // Заполняем фон
+    ebitenutil.DrawRect(screen, 0, 0, 1280, 960, color.RGBA{50, 50, 50, 255})
+
+    // Отрисовываем игрока
+    p.player.Draw(screen)
+
+    // Отрисовываем монетки
+    for _, coin := range p.coins {
+        coin.Draw(screen)
+    }
+
+    // Отрисовываем врагов
+    for _, e := range p.enemies {
+        e.Draw(screen)
+    }
+
+    // Отрисовываем HUD (здоровье и счет)
+    p.hud.Draw(screen, p.player.Health, p.score)
+
+    // Отрисовываем хитбоксы в режиме отладки
+    if p.player.DebugSystem != nil && p.player.DebugSystem.IsEnabled() && p.player.DebugSystem.ShowHitboxes {
+
+        // Хитбокс игрока
+        px, py, pw, ph := p.player.GetHitbox()
+        p.player.DebugSystem.DrawHitbox(screen, px, py, pw, ph)
+
+        // Хитбоксы монеток
+        for _, coin := range p.coins {
+            cx, cy, cw, ch := coin.GetHitbox()
+            p.player.DebugSystem.DrawHitbox(screen, cx, cy, cw, ch)
+        }
+
+        // Хитбоксы врагов
+        for _, e := range p.enemies {
+            if e.Alive {
+                ex, ey, ew, eh := e.GetHitbox()
+                p.player.DebugSystem.DrawHitbox(screen, ex, ey, ew, eh)
+            }
+        }
+    }
 }
 
 // Exit вызывается при выходе из игрового состояния

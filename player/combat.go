@@ -81,14 +81,15 @@ func (p *Player) DrawSword(screen *ebiten.Image) {
 	// Поворот меча на нужный угол (+90 градусов для правильной ориентации)
 	opSword.GeoM.Rotate(angle + math.Pi/2)
 	
+	// Получаем координаты хитбокса игрока
+	hitboxX, hitboxY, hitboxWidth, hitboxHeight := p.GetHitbox()
+	
 	// Смещение меча от игрока
 	offsetDistance := 35 * ScaleFactor
 	
-	// Вычисляем позицию меча
-	scaledWidth := float64(FrameWidth) * ScaleFactor
-	scaledHeight := float64(FrameHeight) * ScaleFactor
-	swordX := p.X + scaledWidth/2 + math.Cos(angle)*offsetDistance
-	swordY := p.Y + scaledHeight/2 + math.Sin(angle)*offsetDistance
+	// Вычисляем позицию меча относительно центра хитбокса
+	swordX := hitboxX + hitboxWidth/2 + math.Cos(angle)*offsetDistance
+	swordY := hitboxY + hitboxHeight/2 + math.Sin(angle)*offsetDistance
 	
 	// Применяем смещение и отрисовываем меч
 	opSword.GeoM.Translate(swordX, swordY)
